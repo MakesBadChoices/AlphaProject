@@ -1,0 +1,7 @@
+
+Thoughts on how to fix the tile refresh error when reversing on movement selection:
+MAYBE it's because the overlays are being drawn fucked up, then getting fixed on the next draw. If I increase the draw
+rate, that'll fix it. Alternatively, I can have a special flag for double-draws. That'll limit redraws to only when
+absolutely necessary?
+
+Both seem valid at 2am.
