@@ -13,7 +13,7 @@ class Matt(Player):
                  resist=None, immune=None, icon='M')
 
         # Set up an avatar for visualization purposes
-        self.avatar = Avatar(self.name)
+        self.avatar = Avatar(self.name, facing='LEFT')
 
         # Set up a list of 'powers' this character has by building a menu tree
         self.menu_tree = {

@@ -208,11 +208,17 @@ class MovementOverlay(object):
                         self.draw_arrow()
 
             # Enter Button or z (a) button
-            if incoming_event.key == 13 or incoming_event.key == 122: pass
+            if incoming_event.key == 13 or incoming_event.key == 122:
+
+                # Pass a digested movement script to the player avatar and terminate
+                move_script = self.generate_movement_script()
+                self.character.avatar.puppet_commands(move_script)
+                self.character.movement = self.path_list[-1][2]
+                self.delete()
+
 
             # Back Button (x)
             if incoming_event.key == 120:
-                self.master.change_state('menu_mode', True)
                 self.delete()
 
     # .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .
@@ -277,12 +283,35 @@ class MovementOverlay(object):
         # Refresh the arrows master has to draw
         self.master.change_sprites(self.arrow_sprite_list, 'overlay_sprites', add=True, layer=0)
 
-
-
     # .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .
     def delete(self):
+        self.master.change_state('menu_mode', True)
         self.master.change_sprites(self.sprite_list, 'overlay_sprites', add=False, layer=0)
         self.master.change_sprites(self.arrow_sprite_list, 'overlay_sprites', add=False, layer=0)
+
+    # .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .
+    def generate_movement_script(self):
+
+        move_script = []
+
+        for i, step in enumerate(self.path_list):
+            if i == 0: continue # the first step is the null, we don't need to mover where we already are!
+
+            x_vel = 0
+            y_vel = 0
+            destination_tile = self.master.give_target_tile(0, 0, step[0][0], step[0][1])
+            if step[1] == 'LEFT': x_vel = -25
+            elif step[1] == 'RIGHT': x_vel = 25
+            elif step[1] == 'UP': y_vel = -25
+            elif step[1] == 'DOWN': y_vel = 25
+
+            move_script.append(['move', {'state_set': 'RUN', 'destination_coords': destination_tile.battle_coords,
+                      'velocity_x': x_vel, 'velocity_y': y_vel, 'decay': 1, 'return_x': 0, 'return_y': 0}])
+
+        move_script.append(['update_base_coords', {'new_tile': destination_tile}])
+        return move_script
+
+
 
 
 # ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~

@@ -164,7 +164,7 @@ class Battleground(object):
         source_path = str(os.path.join('BattleBackgrounds', source_map)).strip()
         self.tile_list = read_tiled_map(map_list, source_path, scale=scale)
 
-        grid_sprite = sprite_sheet((TILESIZE, TILESIZE), r'C:\Users\Matt\PycharmProjects\AlphaProject\BattleBackgrounds\grid_outline.png', pos=(0, 0), scale=scale, single=False)
+        grid_sprite = sprite_sheet((TILESIZE, TILESIZE), os.path.join('BattleBackgrounds', 'grid_outline.png'), pos=(0, 0), scale=scale, single=False)
         grid_tile = Tile('DEFAULT', True, grid_sprite[0], (TILESIZE*scale, TILESIZE*scale))
 
         # Try and make a background from all these tiles...
@@ -188,7 +188,6 @@ class Battleground(object):
             elif item.rect.center[1] != grid_coords[-1][-1][1]:
                 grid_coords.append([])
                 tile_grid.append([])
-
 
             item.gridy = row_num
             grid_coords[-1].append(item.rect.center)
@@ -279,9 +278,6 @@ class Battleground(object):
 
 if __name__ == "__main__":
 
-
-    background_file = r'C:\Users\Matt\PycharmProjects\AlphaProject\BattleBackgrounds\Secret.png'
-
     # Initialize Everything
     pygame.display.set_caption('Battle Debug')
 
@@ -295,6 +291,8 @@ if __name__ == "__main__":
     bg = Battleground(screen_size, players=[matt], enemies=[test_dummy], background_file=background_file, refresh_rate=100)
     map_tile_refresh_rate = bg.refresh_rate
 
+
+
     # screen.blit(bg.background, (0, 0))
     # screen.blit(bg.base_menu.image, bg.base_menu.center_coords)
     pygame.display.update()
@@ -303,7 +301,7 @@ if __name__ == "__main__":
 
     fps_read = False
 
-    up_checks = 50
+    up_checks = 70
     update = 0
 
     going = True
@@ -339,8 +337,18 @@ if __name__ == "__main__":
             for player in bg.players:
                 # Make the player move 4 tiles to the left
                 current_x = player.avatar.tile.gridx
-                current_y = player.avatar.tile.gridy
+                # current_y = player.avatar.tile.gridy
                 # destination_tile = bg.give_target_tile(current_x, current_y, -4, 0)
+                # destination_tile2 = bg.give_target_tile(current_x, current_y, -4, 1)
+                # move_script = [
+                #     ['move', {'state_set': 'RUN', 'destination_coords': destination_tile.battle_coords,
+                #               'velocity_x': -25, 'velocity_y': 0, 'decay': 1, 'return_x': 0, 'return_y': 0}],
+                #     ['move', {'state_set': 'RUN', 'destination_coords': destination_tile2.battle_coords,
+                #               'velocity_x': 0, 'velocity_y': 25, 'decay': 1, 'return_x': 0, 'return_y': 0}],
+                #     ['update_base_coords', {'new_tile': destination_tile2}]
+                # ]
+                # player.avatar.puppet_commands(move_script)
+                #
                 # player.avatar.move('RUN', destination_tile.battle_coords, -25, 0, decay=1, return_x=None, return_y=None)
             update = 0
 
