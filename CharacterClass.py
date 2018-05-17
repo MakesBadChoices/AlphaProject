@@ -89,37 +89,17 @@ class Character(object):
         self.map = None
 
     # ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~
-    # Basic attack using stats only
-    def Basic_Attack(self, target=None, advantage=0, debug=False):
-
-        print "WARNING: DEPRECATED"
-        if advantage == 1:
-            to_hit = max(rand.randint(20)+1 + bonus_table[self.str] + level_bonus_table[self.level], rand.randint(20)+1 + bonus_table[self.str] + level_bonus_table[self.level])
-        elif advantage == 0:
-            to_hit = rand.randint(20)+1 + bonus_table[self.str] + level_bonus_table[self.level]
-        elif advantage == -1:
-            to_hit = min(rand.randint(20)+1 + bonus_table[self.str] + level_bonus_table[self.level], rand.randint(20)+1 + bonus_table[self.str] + level_bonus_table[self.level])
-        else:
-            to_hit = 0
-            if debug: print " ... the attack failed!"
-
-        damage = 1 + bonus_table[self.str]
-        if to_hit == 20: damage += 1; to_hit = 99
-        if target:
-            if to_hit >= target.ac: target.TakeDamage(damage, 'Bludgeoning', False, debug)
-            elif debug: print " ... but the attack missed!"
-        else:
-            return to_hit, damage
-
-    # ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~
     # Attack using equipped weapon
-    def Weapon_Attack(self, target=None, roll=None, roll_mod=0, damage_mod=0, advantage=0, debug=False):
+    def Weapon_Attack(self, roll=None, roll_mod=0, damage_mod=0, advantage=0, query=False):
 
+        if query:
+            return {'target': 'enemy', 'shape': 'single', 'range': 'weapon', 'direction': 'line_of_sight'}
 
-        weapon_stat_bonus = bonus_table[self.stats[self.weapon.bonus_stat]]
-        advantage_string = ''
+        bonus_stat = getattr(self, self.weapon.bonus_stat)
+        weapon_stat_bonus = bonus_table[bonus_stat]
 
-        # Compute the damage roll
+        # Compute the attack roll
+        to_hit_base = 0
         if roll:
             to_hit_base = roll
         elif advantage == 1:
@@ -131,18 +111,17 @@ class Character(object):
         elif not roll:
             to_hit_base = 0
 
-        damage = weapon_stat_bonus + damage_mod
+        # Initialize damage
+        weapon_damage = self.weapon.RollDamage()
 
-        for i in xrange(0, self.weapon.die_num): damage += rand.randint(self.weapon.weapon_die)+1
-        if to_hit_base == 20: damage += rand.randint(self.weapon.weapon_die)+1; to_hit_base = 99
+        if to_hit_base == 20: weapon_damage += self.weapon.RollDamage(); to_hit_base = 99
         if to_hit_base == 1: to_hit_base = -99
 
+        # Compute the final to-hit and damage rolls
+        damage = weapon_damage + weapon_stat_bonus + damage_mod
         to_hit = to_hit_base + roll_mod + weapon_stat_bonus + level_bonus_table[self.level]
 
-        if target:
-            if to_hit >= target.ac: target.TakeDamage(damage, self.weapon.damage_type, self.weapon.magic, debug)
-        else:
-            return to_hit, damage
+        return to_hit, damage
 
     # ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~
     # Roll to see what happens first

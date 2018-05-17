@@ -5,6 +5,7 @@
 # Project Specific Imports
 from CharacterClass import Player
 from AvatarClass import Avatar
+from WeaponClass import *
 
 class Matt(Player):
 
@@ -14,6 +15,8 @@ class Matt(Player):
 
         # Set up an avatar for visualization purposes
         self.avatar = Avatar(self.name, facing='LEFT')
+        self.movement = 50
+        self.weapon = Longsword()
 
         # Set up a list of 'powers' this character has by building a menu tree
         self.menu_tree = {
@@ -33,3 +36,13 @@ class TestDummy(Player):
                         resist=None, immune=None, icon='M')
 
         self.avatar = Avatar(self.name)
+        self.movement = 30
+        self.weapon = Dagger()
+
+        # Set up a list of 'powers' this character has by building a menu tree
+        self.menu_tree = {
+            'Actions': ['Weapon Attack', 'Dash', 'Cast Cantrip'],
+            'Bonus Actions': ['Derp', 'Offhand Attack'],
+            'Setup Reactions': ['Ready Attack'],
+            'Cast Cantrip': ['Firebolt']
+        }

@@ -41,8 +41,17 @@ class Avatar(pygame.sprite.DirtySprite):
 
         # Now load up all the sprites we'll need for this Matt.
         # Note that all sprites are facing towards the left by default
-        self.idle_sprites = sprite_sheet(sprite_size, os.path.join(base_dir, '%s_Idle.png' % self.name), scale=scale)
-        self.run_sprites = sprite_sheet(sprite_size, os.path.join(base_dir, '%s_Run.png' % self.name), scale=scale)
+        for sequence in ['Idle', 'Run', 'Attack']:
+            try:
+                sprite_sequence = sprite_sheet(sprite_size, os.path.join(base_dir, '%s_%s.png' % (self.name, sequence)), scale=scale)
+                setattr(self, sequence.lower()+'_sprites', sprite_sequence)
+            except:
+                sprite_sequence = sprite_sheet(sprite_size, os.path.join(base_dir, '%s_Idle.png' % (self.name)), scale=scale)
+                setattr(self, sequence.lower()+'_sprites', sprite_sequence)
+
+        # self.idle_sprites = sprite_sheet(sprite_size, os.path.join(base_dir, '%s_Idle.png' % self.name), scale=scale)
+        # self.run_sprites = sprite_sheet(sprite_size, os.path.join(base_dir, '%s_Run.png' % self.name), scale=scale)
+        # self.attack_sprites = sprite_sheet(sprite_size, os.path.join(base_dir, '%s_Attack.png' % self.name), scale=scale)
 
         # Set up the default animations
         self.animation_series = self.idle_sprites
@@ -57,13 +66,15 @@ class Avatar(pygame.sprite.DirtySprite):
         self.puppet_script = []
         self.puppet_index = 0
 
-
     # .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .
     def update(self):
         self.frame += 1
         if self.frame > self.max_frame:
             self.frame = 0
-            if self.play_action: self.play_action = False; self.puppet_commands()
+            if self.play_action:
+                self.change_state(self.previous_state)
+                self.play_action = False
+                self.puppet_commands()
 
         self.image = self.animation_series[self.frame]
 
@@ -186,6 +197,9 @@ class Avatar(pygame.sprite.DirtySprite):
             self.puppet = True
             self.puppet_script = movement_script
             self.puppet_index = 0
+
+        # Eliminate false updates for when routines terminate but no script remains
+        if len(self.puppet_script) == 0: return
 
         # Draw the current puppet command
         command_sequence = self.puppet_script[self.puppet_index]

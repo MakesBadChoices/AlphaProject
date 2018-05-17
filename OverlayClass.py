@@ -211,6 +211,7 @@ class MovementOverlay(object):
             if incoming_event.key == 13 or incoming_event.key == 122:
 
                 # Pass a digested movement script to the player avatar and terminate
+                if len(self.path_list) <= 1: return
                 move_script = self.generate_movement_script()
                 self.character.avatar.puppet_commands(move_script)
                 self.character.movement = self.path_list[-1][2]
@@ -335,19 +336,20 @@ class MovementArrow(pygame.sprite.DirtySprite):
 # ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~
 class MovementSquare(pygame.sprite.DirtySprite):
 
-    def __init__(self, center_coords, rect, text):
+    def __init__(self, center_coords, rect, text=None, color=(0, 0, 250, 150)):
 
         pygame.sprite.DirtySprite.__init__(self)
         surface = pygame.Surface(rect.size)
-        surface.fill((0, 0, 250, 150))
+        surface.fill(color)
+
         self.layer = 0
 
-        self.font = pygame.font.Font(FONTS['nintendo_nes_font'], 16)
-        text_surface = self.font.render(str(text), True, (255, 255, 255))
-        text_rect = text_surface.get_rect(x=10,
-                                          y=10)
-        surface.blit(text_surface, text_rect)
-
+        if text:
+            self.font = pygame.font.Font(FONTS['nintendo_nes_font'], 16)
+            text_surface = self.font.render(str(text), True, color)
+            text_rect = text_surface.get_rect(x=10,
+                                              y=10)
+            surface.blit(text_surface, text_rect)
 
         surface.set_alpha(50)
         self.image = surface
@@ -357,6 +359,99 @@ class MovementSquare(pygame.sprite.DirtySprite):
 
     def update(self):
         self.dirty = 1
+
+# ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~
+class TargetOverlay(object):
+
+    def __init__(self, master, creature, command, target_info):
+
+        self.master = master
+        self.creature = creature
+        self.command = command
+        self.target_info = target_info
+        self.sprite_list = []
+
+        # From the target information, figure out which tiles are in reach
+        delta_value = 1
+        if target_info['range'] == 'weapon': delta_value = creature.weapon.reach
+
+        print delta_value
+
+        # Next, grab all tiles currently in range of the user
+        origin_x = creature.avatar.tile.gridx
+        origin_y = creature.avatar.tile.gridy
+        viable_tiles = []
+        for j in xrange(origin_y-delta_value, origin_y+delta_value+1):
+            for i in xrange(origin_x-delta_value, origin_x+delta_value+1):
+                if i == 0 and j == 0: continue
+                print '---'
+                print i
+                print j
+                tile = self.master.give_target_tile(0, 0, i, j)
+                if tile is not None:
+                    viable_tiles.append(tile)
+                    self.sprite_list.append(MovementSquare(tile.rect.center, tile.rect, color=(255, 165, 0, 0)))
+
+        print viable_tiles
+        print len(viable_tiles)
+        self.master.change_sprites(self.sprite_list, 'overlay_sprites', add=True)
+
+    # .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .
+    def update(self):
+        pass
+
+    # .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .
+    def delete(self):
+        pass
+
+    def process_input(self, incoming_event):
+
+        print incoming_event
+        if incoming_event.type == KEYDOWN:
+
+            # Left Arrow
+            if incoming_event.key == 276:
+                pass
+
+            # Up Arrow
+            if incoming_event.key == 273:
+                pass
+
+            # Right Arrow
+            if incoming_event.key == 275:
+                pass
+
+            # Down arrow
+            if incoming_event.key == 274:
+                pass
+            
+            # Enter Button or z (a) button
+            if incoming_event.key == 13 or incoming_event.key == 122:
+                pass
+                self.delete()
+
+            # Back Button (x)
+            if incoming_event.key == 120:
+                self.delete()
+
+
+
+
+class TargetArrow(pygame.sprite.DirtySprite):
+
+        def __init__(self, sprite, center_coords, scale=1):
+            pygame.sprite.DirtySprite.__init__(self)
+            # self.image = sprite
+            print scale
+            self.image = pygame.transform.scale(sprite, (TILESIZE * scale, TILESIZE * scale))
+            self.rect = self.image.get_rect()
+            self.rect.center = center_coords
+            self.dirty = 1
+            self.layer = 0
+
+        def update(self):
+            pass
+
 
 
 # ==================================================================================================================== #

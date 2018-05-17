@@ -6,7 +6,7 @@ from random import randint
 
 # Project Specific Imports
 import MenuClass
-from OverlayClass import MovementOverlay
+from OverlayClass import MovementOverlay, TargetOverlay
 from AvatarClass import Avatar
 from TileEngine import read_tiled_map, sprite_sheet, Tile
 from Config import *
@@ -90,6 +90,7 @@ class Battleground(object):
             'menu_mode': False,
             'input_state': True,
             'move_mode': False,
+            'target_mode': False,
         }
 
     # .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .
@@ -103,7 +104,7 @@ class Battleground(object):
         pass
 
     # .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .
-    def change_state(self, state, new_value):
+    def change_state(self, state, new_value, kwargs=None):
 
 
         # If switching modes, turn off all other modes
@@ -123,6 +124,9 @@ class Battleground(object):
         if self.state_dictionary['menu_mode']:
             self.active_object = self.base_menu
 
+        # If we're entering target mode... do it.
+        if self.state_dictionary['target_mode']:
+            self.active_object = TargetOverlay(self, **kwargs)
 
     # .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .
     def compute_turn_order(self):
@@ -243,14 +247,33 @@ class Battleground(object):
     def give_target_tile(self, current_x, current_y, delta_x, delta_y):
 
         # Return nothing if there is an error
-        if current_x + delta_x < 0 or current_x + delta_x > len(self.tile_grid[0]) - 1: return None
-        if current_y + delta_y < 0 or current_y + delta_y > len(self.tile_grid) - 1: return None
+        if current_x + delta_x < 0 or current_x + delta_x > len(self.navigable_tile_grid[0]) - 1: return None
+        if current_y + delta_y < 0 or current_y + delta_y > len(self.navigable_tile_grid) - 1: return None
 
         destination_tile = self.navigable_tile_grid[current_y+delta_y][current_x+delta_x]
-        print destination_tile.gridx
-        print destination_tile.gridy
         # Otherwise, give it the tile the requester seeks
         return destination_tile
+
+    # .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .
+    def give_character_command(self, action_text):
+
+        # The action text is the raw command the user gives. We don't use spaces, so toss those out first...
+        command_text = action_text.replace(' ', '_')
+        method = getattr(self.current_creature, command_text)
+        print command_text
+
+        # Query the acting characters method for target information
+        target_dictionary = method(query=True)
+
+        # Summon a target menu based on the relayed target information
+        if len(target_dictionary.keys()) > 0:
+            self.change_state('target_mode', True, {'creature': self.current_creature, 'command': command_text, 'target_info': target_dictionary})
+        else:
+            # For now, it just plays the attack animation as a puppet script
+            script = [
+                ['perform_animation', {'animation_state': 'attack'}]
+            ]
+            self.current_creature.avatar.puppet_commands(script)
 
     # .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .
     def change_sprites(self, sprite_list, sprite_group, add=True, layer=0):
