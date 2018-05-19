@@ -150,6 +150,7 @@ class Tile(pygame.sprite.DirtySprite):
         self.name = name
         self.image = sprite
         self.size = size
+        self.avatar = None
         self.animation_series = animation_series
 
         # Detect if the user desires a collision box different than a simple rectangle surrounding the sprite

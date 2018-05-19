@@ -1,6 +1,7 @@
 
 # Generic Imports
 import pygame
+from math import sqrt
 from pygame.locals import *
 from random import randint
 
@@ -60,7 +61,7 @@ class Battleground(object):
 
         # Add the default menu in, set up the variables and triggers for it
         # The tuples are the name, the menu-state it puts the battleground into, and... bonus option (unused)
-        buttonList = [
+        self.buttonList = [
             ('Move', 0, None),
             ('Actions', 1, None),
             ('Bonus Actions', 2, None),
@@ -69,7 +70,7 @@ class Battleground(object):
         ]
         image = GFX['MenuSprite']
         menu_coords = (100, 512)
-        self.base_menu = MenuClass.BattleMenu(self, menu_coords, buttonList, image)
+        self.base_menu = MenuClass.BattleMenu(self, menu_coords, self.buttonList, image)
         self.sub_menus = []
 
         # self.menu_sprites.add(self.base_menu)
@@ -83,6 +84,7 @@ class Battleground(object):
         self.all_creatures = []
         self.current_turn = 0
         self.current_creature = None
+        self.previous_command = None
         self.compute_turn_order()
 
         # Finally, make a dictionary of the possible states.
@@ -97,6 +99,7 @@ class Battleground(object):
     def process_input(self, incoming_event):
 
         if self.state_dictionary['input_state']:
+            print self.active_object
             self.active_object.process_input(incoming_event)
 
     # .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .
@@ -126,7 +129,8 @@ class Battleground(object):
 
         # If we're entering target mode... do it.
         if self.state_dictionary['target_mode']:
-            self.active_object = TargetOverlay(self, **kwargs)
+            target_overlay = TargetOverlay(self, **kwargs)
+            self.active_object = target_overlay
 
     # .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .
     def compute_turn_order(self):
@@ -148,6 +152,20 @@ class Battleground(object):
         self.current_turn += 1
         if self.current_turn > len(self.turn_order) - 1: self.current_turn = 0
         self.current_creature = self.turn_order[self.current_turn]
+        self.current_creature.StartTurn()
+
+        self.change_sprites([self.base_menu], 'menu_sprites', add=False)
+        self.change_state('menu_mode', True)
+        self.base_menu = None
+        self.active_object = None
+
+        # Regenerate the menu if it's a friendly turn # TODO Overriden for debug mode until we get AI
+        # if self.current_creature in self.players:
+        image = GFX['MenuSprite']
+        menu_coords = (100, 512)
+        self.base_menu = MenuClass.BattleMenu(self, menu_coords, self.buttonList, image)
+        self.active_object = self.base_menu
+        self.change_sprites([self.base_menu], 'menu_sprites', add=True, layer=self.base_menu.layer)
 
     # .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .
     def setup_grid(self, map_file):
@@ -234,12 +252,14 @@ class Battleground(object):
             if player:
                 if self.navigable_tiles[index].rect.center[0] < (WIDTH*.6): continue
                 if self.navigable_tiles[index].occupant is not None: continue
-                self.navigable_tiles[index].occupant = creature; creature.avatar.tile = self.navigable_tiles[index]
+                self.navigable_tiles[index].occupant = creature
+                creature.avatar.tile = self.navigable_tiles[index]
                 not_good = False
             else:
                 if self.navigable_tiles[index].rect.center[0] > (WIDTH*.4): continue
                 if self.navigable_tiles[index].occupant is not None: continue
-                self.navigable_tiles[index].occupant = creature; creature.avatar.tile = self.navigable_tiles[index]
+                self.navigable_tiles[index].occupant = creature
+                creature.avatar.tile = self.navigable_tiles[index]
                 not_good = False
         return self.navigable_tiles[index].battle_coords
 
@@ -255,25 +275,65 @@ class Battleground(object):
         return destination_tile
 
     # .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .
-    def give_character_command(self, action_text):
+    def give_character_command(self, creature, action_text, target_tile=None):
 
         # The action text is the raw command the user gives. We don't use spaces, so toss those out first...
         command_text = action_text.replace(' ', '_')
-        method = getattr(self.current_creature, command_text)
+        method = getattr(creature, command_text)
+        self.previous_command = command_text
+        target_dictionary = method(query=True)
         print command_text
 
         # Query the acting characters method for target information
-        target_dictionary = method(query=True)
+        if target_tile is None:
 
-        # Summon a target menu based on the relayed target information
-        if len(target_dictionary.keys()) > 0:
-            self.change_state('target_mode', True, {'creature': self.current_creature, 'command': command_text, 'target_info': target_dictionary})
+            # Summon a target menu based on the relayed target information
+            if len(target_dictionary.keys()) > 1:
+                self.change_state('target_mode', True, {'creature': creature, 'command': command_text, 'target_info': target_dictionary})
+                return
+            else:
+                target_tile = creature.avatar.tile
+
+        # Have the avatar commit to the move.
+        if target_dictionary['type'] == 'attack':
+            roll, roll_mod, damage_mod, advantage = self.adjudicate_attack(creature, target_dictionary, target_tile)
+            to_hit, damage, damage_type, magic = method(roll=roll, roll_mod=roll_mod, damage_mod=damage_mod, advantage=advantage, animate=True)
+
+            # Do something special if it's a multi-hit
+            if target_dictionary['shape'] != 'single':
+                pass
+
+            elif target_dictionary['shape'] == 'single':
+                # Figure out what to tell the user about the hit
+                if target_tile.occupant.ac <= to_hit:
+                    target_tile.occupant.TakeDamage(damage, damage_type, magical_damage=magic)
+                    text = str(damage) + ' ' + damage_type
+                else:
+                    text = 'MISS'
+                    if target_tile.occupant.ac - to_hit > 3: text = 'EVADE'
+
+                print text
+                # Make a popup at the scene for what happened...
+                # TODO
+
         else:
-            # For now, it just plays the attack animation as a puppet script
-            script = [
-                ['perform_animation', {'animation_state': 'attack'}]
-            ]
-            self.current_creature.avatar.puppet_commands(script)
+            method()
+
+    # .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .
+    # Perform some black magic to determine if the attack has any modifiers put onto it...
+    def adjudicate_attack(self, creature, target_dictionary, target_tile):
+        roll = None; roll_mod = 0; damage_mod = 0; advantage = 0
+
+        tile_distance = sqrt((creature.avatar.tile.gridx - target_tile.gridx)**2 + (creature.avatar.tile.gridy - target_tile.gridy)**2)
+
+        # Is it a ranged attack at melee range? Or a melee attacker hitting a ranged fighter at close range?
+        if target_dictionary['range'] > 1 and tile_distance <= 1: advantage = -1
+
+        # Checks dependent on the tile having an occupant...
+        if target_tile.occupant is not None:
+            if target_dictionary['range'] == 1 and target_tile.occupant.weapon.reach > 2: advantage = 1
+
+        return roll, roll_mod, damage_mod, advantage
 
     # .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .
     def change_sprites(self, sprite_list, sprite_group, add=True, layer=0):
@@ -308,10 +368,12 @@ if __name__ == "__main__":
     from PlayerClasses import Matt, TestDummy
     matt = Matt()
     test_dummy = TestDummy()
+    test_dummy2 = TestDummy()
+    test_dummy3 = TestDummy()
 
     background_file = 'testmap_export.csv'
     background_file = 'Big_Test.csv'
-    bg = Battleground(screen_size, players=[matt], enemies=[test_dummy], background_file=background_file, refresh_rate=100)
+    bg = Battleground(screen_size, players=[matt], enemies=[test_dummy, test_dummy2, test_dummy3], background_file=background_file, refresh_rate=100)
     map_tile_refresh_rate = bg.refresh_rate
 
 

@@ -121,7 +121,7 @@ class BattleMenu(pygame.sprite.DirtySprite):
                     self.engage_action(descriptor_text)
 
                 elif descriptor_text == 'End Turn':
-                    pass
+                    self.master.next_turn()
 
             # Back Button (x)
             if incoming_event.key == 120:
@@ -139,8 +139,8 @@ class BattleMenu(pygame.sprite.DirtySprite):
 
     # .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .
     def engage_action(self, descriptor_text):
-        self.master.give_character_command(descriptor_text)
         self.delete()
+        self.master.give_character_command(self.master.current_creature, descriptor_text)
 
     # .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .
     def delete(self):

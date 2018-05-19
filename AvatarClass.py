@@ -18,10 +18,11 @@ base_dir = 'C:\Users\Matt\PycharmProjects\AlphaProject\CharacterGraphics'
 
 class Avatar(pygame.sprite.DirtySprite):
 
-    def __init__(self, name, facing='RIGHT', scale=2):
+    def __init__(self, character, name, facing='RIGHT', scale=2):
 
         pygame.sprite.DirtySprite.__init__(self)
 
+        self.character = character
         self.name = name
         self.state = 'IDLE'
         self.override_state = 'Null'
@@ -177,7 +178,9 @@ class Avatar(pygame.sprite.DirtySprite):
     # .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .
     def update_base_coords(self, new_tile):
         new_coords = new_tile.battle_coords
+        self.tile.occupant = None
         self.tile = new_tile
+        self.tile.occupant = self.character
         self.base_coords = new_coords
         self.modified_coords = self.base_coords
         self.destination_coords = None

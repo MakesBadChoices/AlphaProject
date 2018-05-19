@@ -43,6 +43,12 @@ class Dagger(Weapon):
 
         Weapon.__init__(self, 'Dagger', 1, 4, 1, 'fin', 'piercing', tags=['throwable'])
 
+class Fists(Weapon):
+
+    def __init__(self):
+
+        Weapon.__init__(self, 'Fists', 1, 1, 1, 'str', 'bludgeoning')
+
 
 
 

@@ -3,7 +3,7 @@ import numpy.random as rand
 
 # Project Imports
 from CharacterSupport import *
-from WeaponClass import Weapon
+from WeaponClass import *
 
 class Character(object):
 
@@ -11,6 +11,7 @@ class Character(object):
                  resist=None, immune=None, actions=None, saves=None):
 
         self.name = 'Placeholder'
+        self.avatar = None
         self.hp_cur = hp
         self.hp_max = hp
         self.level = level
@@ -32,7 +33,7 @@ class Character(object):
         if self.immune is None: self.immune = []
         if self.actions is None: self.actions = ['Basic_Attack']
 
-        self.weapon = Weapon('Fists', 1, 1, 'Close', 0, 'Bludgeoning')
+        self.weapon = Fists()
 
         # Combat Stat boni
         self.ac_bonus = 0
@@ -90,10 +91,10 @@ class Character(object):
 
     # ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~
     # Attack using equipped weapon
-    def Weapon_Attack(self, roll=None, roll_mod=0, damage_mod=0, advantage=0, query=False):
+    def Weapon_Attack(self, roll=None, roll_mod=0, damage_mod=0, advantage=0, query=False, animate=False):
 
         if query:
-            return {'target': 'enemy', 'shape': 'single', 'range': 'weapon', 'direction': 'line_of_sight'}
+            return {'target': 'creature', 'shape': 'single', 'range': self.weapon.reach, 'direction': 'line_of_sight', 'type': 'attack'}
 
         bonus_stat = getattr(self, self.weapon.bonus_stat)
         weapon_stat_bonus = bonus_table[bonus_stat]
@@ -120,8 +121,11 @@ class Character(object):
         # Compute the final to-hit and damage rolls
         damage = weapon_damage + weapon_stat_bonus + damage_mod
         to_hit = to_hit_base + roll_mod + weapon_stat_bonus + level_bonus_table[self.level]
-
-        return to_hit, damage
+        damage_type = self.weapon.damage_type
+        if animate:
+            script = [['perform_animation', {'animation_state': 'attack'}]]
+            self.avatar.puppet_commands(script)
+        return to_hit, damage, damage_type, self.weapon.magic
 
     # ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~
     # Roll to see what happens first

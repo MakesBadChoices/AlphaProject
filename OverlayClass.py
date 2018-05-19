@@ -1,6 +1,7 @@
 # Generic Imports
 import pygame
 from pygame.locals import *
+from math import sqrt
 
 # Project Specific Imports
 from Config import *
@@ -23,6 +24,9 @@ ORIGIN_LEFT = arrow_sprites[10]
 ORIGIN_DOWN = arrow_sprites[11]
 ORIGIN_RIGHT = arrow_sprites[12]
 ORIGIN_UP = arrow_sprites[13]
+
+orange_sprite = sprite_sheet((TILESIZE, TILESIZE), str(os.path.join('CharacterGraphics', 'orange_arrow.png')).strip())
+ORANGE_ARROW = orange_sprite[0]
 
 # ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~
 class MovementOverlay(object):
@@ -79,7 +83,7 @@ class MovementOverlay(object):
         for j, row in enumerate(movement_cost_matrix):
             for i, column in enumerate(row):
                 if movement_cost_matrix[j][i] <= self.master.current_creature.movement:
-                    self.sprite_list.append(MovementSquare(self.navigable_tile_grid[j][i].rect.center, self.navigable_tile_grid[j][i].rect, movement_cost_matrix[j][i]))
+                    self.sprite_list.append(MovementSquare(self.navigable_tile_grid[j][i].rect.center, self.navigable_tile_grid[j][i].rect, text=movement_cost_matrix[j][i]))
 
         # Finally, now that we've filled out the sprite list, let the battleground know about it
         self.master.change_sprites(self.sprite_list, 'overlay_sprites', add=True, layer=0)
@@ -344,9 +348,10 @@ class MovementSquare(pygame.sprite.DirtySprite):
 
         self.layer = 0
 
-        if text:
+        if text is not None:
+            print "HA"
             self.font = pygame.font.Font(FONTS['nintendo_nes_font'], 16)
-            text_surface = self.font.render(str(text), True, color)
+            text_surface = self.font.render(str(text), True, (255, 255, 255))
             text_rect = text_surface.get_rect(x=10,
                                               y=10)
             surface.blit(text_surface, text_rect)
@@ -369,11 +374,11 @@ class TargetOverlay(object):
         self.creature = creature
         self.command = command
         self.target_info = target_info
-        self.sprite_list = []
+        self.tile_sprite_list = []
+        self.arrow_sprite_list = []
 
         # From the target information, figure out which tiles are in reach
-        delta_value = 1
-        if target_info['range'] == 'weapon': delta_value = creature.weapon.reach
+        delta_value = target_info['range']
 
         print delta_value
 
@@ -381,6 +386,7 @@ class TargetOverlay(object):
         origin_x = creature.avatar.tile.gridx
         origin_y = creature.avatar.tile.gridy
         viable_tiles = []
+
         for j in xrange(origin_y-delta_value, origin_y+delta_value+1):
             for i in xrange(origin_x-delta_value, origin_x+delta_value+1):
                 if i == 0 and j == 0: continue
@@ -390,11 +396,49 @@ class TargetOverlay(object):
                 tile = self.master.give_target_tile(0, 0, i, j)
                 if tile is not None:
                     viable_tiles.append(tile)
-                    self.sprite_list.append(MovementSquare(tile.rect.center, tile.rect, color=(255, 165, 0, 0)))
+                    self.tile_sprite_list.append(MovementSquare(tile.rect.center, tile.rect, color=(255, 165, 0, 0)))
 
+        # Make an orange overlay showing everything currently in range
         print viable_tiles
         print len(viable_tiles)
-        self.master.change_sprites(self.sprite_list, 'overlay_sprites', add=True)
+        self.master.change_sprites(self.tile_sprite_list, 'overlay_sprites', add=True)
+
+        # Put an arrow over everything that is a viable target
+        # Abort everything if the number of target tiles is zero
+        self.target_tiles = []
+        for tile in viable_tiles:
+            if self.check_target(tile):
+                self.target_tiles.append(tile)
+        if len(self.target_tiles) == 0: return
+
+        # Make tiny arrows over each of them. Redraw these each time we get a new selection...
+        # Make the first targettable tile the currently selected by default
+        self.target_tile = self.target_tiles[0]
+        self.arrow_sprite_list.append(TargetArrow(ORANGE_ARROW, self.target_tiles[0].rect.center, scale=2))
+
+        if len(self.target_tiles) > 1:
+            for tile in self.target_tiles[1:]:
+                self.arrow_sprite_list.append(TargetArrow(ORANGE_ARROW, tile.rect.center, scale=1))
+
+        self.master.change_sprites(self.arrow_sprite_list, 'popup_sprites', add=True, layer=4)
+
+    # .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .
+    # Decompose the targetting info to see if a given tile is a valid location to aim the attack or whatever
+    def check_target(self, tile):
+
+        target_type = self.target_info['target']
+
+        if target_type == 'creature':
+            for creature in self.master.turn_order:
+                if creature.avatar.tile.gridx == tile.gridx and creature.avatar.tile.gridy == tile.gridy: return True
+
+        elif target_type == 'point': return True
+
+        elif target_type == 'self':
+            if self.creature.tile.gridx == tile.gridx and self.creature.tile.gridy == tile.gridy: return True
+
+        # Otherwise... return FALSE
+        return False
 
     # .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .
     def update(self):
@@ -402,8 +446,49 @@ class TargetOverlay(object):
 
     # .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .
     def delete(self):
-        pass
+        self.master.change_sprites(self.tile_sprite_list, 'overlay_sprites', add=False)
+        self.master.change_sprites(self.arrow_sprite_list, 'popup_sprites', add=False)
+        self.master.change_state('menu_mode', True)
 
+    # .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .
+    # This function searches out the tile closest to the currently selected one in the direction chosen
+    def change_target(self, direction):
+
+        # Now for the harder generalized case...
+        delta_x = 0; delta_y = 0
+        if direction == 'LEFT': delta_x = -1
+        elif direction == 'RIGHT': delta_x = 1
+        elif direction == 'UP': delta_y = -1
+        elif direction == 'DOWN': delta_y = 1
+
+        best_distance = 9999
+        best_index = -1
+        for i, tile in enumerate(self.target_tiles):
+            if tile.gridx == self.target_tile.gridx and tile.gridy == self.target_tile.gridy: continue
+
+            distance = sqrt((self.target_tile.gridx + delta_x - tile.gridx)**2 + (self.target_tile.gridy + delta_y - tile.gridy)**2)
+            print distance
+            print i
+            if distance < best_distance:
+                best_distance = distance
+                best_index = i
+
+        self.target_tile = self.target_tiles[best_index]
+
+        # Now, regenerate the arrows and crap
+        self.master.change_sprites(self.arrow_sprite_list, 'popup_sprites', add=False)
+        self.arrow_sprite_list = []
+        self.arrow_sprite_list.append(TargetArrow(ORANGE_ARROW, self.target_tile.rect.center, scale=2))
+
+        if len(self.target_tiles) > 1:
+            for tile in self.target_tiles:
+                if tile.gridx == self.target_tile.gridx and tile.gridy == self.target_tile.gridy: continue
+                self.arrow_sprite_list.append(TargetArrow(ORANGE_ARROW, tile.rect.center, scale=1))
+
+        self.master.change_sprites(self.arrow_sprite_list, 'popup_sprites', add=True, layer=4)
+
+
+    # .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .
     def process_input(self, incoming_event):
 
         print incoming_event
@@ -411,23 +496,23 @@ class TargetOverlay(object):
 
             # Left Arrow
             if incoming_event.key == 276:
-                pass
+                self.change_target('LEFT')
 
             # Up Arrow
             if incoming_event.key == 273:
-                pass
+                self.change_target('UP')
 
             # Right Arrow
             if incoming_event.key == 275:
-                pass
+                self.change_target('RIGHT')
 
             # Down arrow
             if incoming_event.key == 274:
-                pass
-            
+                self.change_target('DOWN')
+
             # Enter Button or z (a) button
             if incoming_event.key == 13 or incoming_event.key == 122:
-                pass
+                self.master.give_character_command(self.creature, self.command, target_tile=self.target_tile)
                 self.delete()
 
             # Back Button (x)
@@ -435,19 +520,16 @@ class TargetOverlay(object):
                 self.delete()
 
 
-
-
 class TargetArrow(pygame.sprite.DirtySprite):
 
         def __init__(self, sprite, center_coords, scale=1):
             pygame.sprite.DirtySprite.__init__(self)
-            # self.image = sprite
-            print scale
+            self.layer = 9
             self.image = pygame.transform.scale(sprite, (TILESIZE * scale, TILESIZE * scale))
             self.rect = self.image.get_rect()
-            self.rect.center = center_coords
+            self.rect.center = (center_coords[0], center_coords[1] - (TILESIZE * scale + TILESIZE*scale/2))
+
             self.dirty = 1
-            self.layer = 0
 
         def update(self):
             pass

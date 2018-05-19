@@ -14,7 +14,7 @@ class Matt(Player):
                  resist=None, immune=None, icon='M')
 
         # Set up an avatar for visualization purposes
-        self.avatar = Avatar(self.name, facing='LEFT')
+        self.avatar = Avatar(self, self.name, facing='LEFT')
         self.movement = 50
         self.weapon = Longsword()
 
@@ -35,7 +35,7 @@ class TestDummy(Player):
                         weakness=None,
                         resist=None, immune=None, icon='M')
 
-        self.avatar = Avatar(self.name)
+        self.avatar = Avatar(self, self.name)
         self.movement = 30
         self.weapon = Dagger()
 
