@@ -524,7 +524,7 @@ class TargetArrow(pygame.sprite.DirtySprite):
 
         def __init__(self, sprite, center_coords, scale=1):
             pygame.sprite.DirtySprite.__init__(self)
-            self.layer = 9
+            self.layer = 4
             self.image = pygame.transform.scale(sprite, (TILESIZE * scale, TILESIZE * scale))
             self.rect = self.image.get_rect()
             self.rect.center = (center_coords[0], center_coords[1] - (TILESIZE * scale + TILESIZE*scale/2))
@@ -533,6 +533,37 @@ class TargetArrow(pygame.sprite.DirtySprite):
 
         def update(self):
             pass
+
+class TextPopup(pygame.sprite.DirtySprite):
+
+    def __init__(self, master, text, center_coords, color=(255, 255, 255), size=24, scale=1):
+
+        pygame.sprite.DirtySprite.__init__(self)
+
+        self.master = master
+        # self.font = pygame.font.Font(FONTS['nintendo_nes_font'], size)
+        self.font = pygame.font.Font(FONTS['nintendo_nes_font'], size)
+        self.image = self.font.render(text.upper(), True, color)
+        self.rect = self.image.get_rect(x=10, y=10)
+        self.rect.center = (center_coords[0], center_coords[1] - (TILESIZE * scale + TILESIZE*scale/2))
+
+        self.layer = 5
+        self.dirty = 1
+
+        self.velocity = 3
+        self.duration = 15
+
+    def update(self):
+
+        self.rect.center = (self.rect.center[0], self.rect.center[1] - self.velocity)
+        self.duration -= 1
+        self.dirty = 1
+
+        if self.duration == 0:
+            self.master.change_sprites([self], 'popup_sprites', add=False)
+
+
+
 
 
 

@@ -7,7 +7,7 @@ from random import randint
 
 # Project Specific Imports
 import MenuClass
-from OverlayClass import MovementOverlay, TargetOverlay
+from OverlayClass import MovementOverlay, TargetOverlay, TextPopup
 from AvatarClass import Avatar
 from TileEngine import read_tiled_map, sprite_sheet, Tile
 from Config import *
@@ -310,11 +310,10 @@ class Battleground(object):
                     text = str(damage) + ' ' + damage_type
                 else:
                     text = 'MISS'
-                    if target_tile.occupant.ac - to_hit > 3: text = 'EVADE'
+                    if target_tile.occupant.ac - to_hit <= 3: text = 'EVADE'
 
-                print text
-                # Make a popup at the scene for what happened...
-                # TODO
+                info_sprite = TextPopup(self, text, target_tile.rect.center, color=(255, 255, 255), size=24, scale=1)
+                self.change_sprites([info_sprite], 'popup_sprites', add=True)
 
         else:
             method()
@@ -341,10 +340,11 @@ class Battleground(object):
         # group_list = getattr(self, sprite_group)
         group_list = self.all_sprites
 
+
         for sprite in sprite_list:
             sprite.dirty = 1
             if add:
-                group_list.add(sprite, layer=layer)
+                group_list.add(sprite, layer=sprite.layer)
             else:
                 group_list.remove(sprite)
                 self.delete_sprites.add(sprite)

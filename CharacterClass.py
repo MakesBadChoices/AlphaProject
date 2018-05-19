@@ -64,6 +64,7 @@ class Character(object):
         self.int = self.base_int + self.int_bonus
         self.wis = self.base_wis + self.wis_bonus
         self.cha = self.base_cha + self.cha_bonus
+        self.fin = max(self.str, self.dex)
         self.stats = [self.str, self.dex, self.con, self.int, self.wis, self.cha]
 
         self.saves = saves
@@ -290,6 +291,7 @@ class Character(object):
         self.int = self.base_int + self.int_bonus
         self.wis = self.base_wis + self.wis_bonus
         self.cha = self.base_cha + self.cha_bonus
+        self.fin = max(self.str, self.dex)
         self.stats = [self.str, self.dex, self.con, self.int, self.wis, self.cha]
 
         # Recompute AC as needed
