@@ -20,10 +20,9 @@ class Matt(Player):
 
         # Set up a list of 'powers' this character has by building a menu tree
         self.menu_tree = {
-            'Actions': ['Weapon Attack', 'Dash', 'Cast Cantrip'],
+            'Actions': ['Weapon Attack', 'Dash', 'Cast Spell'],
             'Bonus Actions': ['Derp', 'Offhand Attack'],
             'Setup Reactions': ['Ready Attack'],
-            'Cast Cantrip': ['Firebolt']
         }
 
 

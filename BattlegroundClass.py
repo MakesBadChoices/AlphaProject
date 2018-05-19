@@ -275,7 +275,8 @@ class Battleground(object):
         return destination_tile
 
     # .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .
-    def give_character_command(self, creature, action_text, target_tile=None):
+    # This is reserved for built-in methods. Super calls like spells or other generics are not handled here.
+    def give_character_basic_command(self, creature, action_text, target_tile=None):
 
         # The action text is the raw command the user gives. We don't use spaces, so toss those out first...
         command_text = action_text.replace(' ', '_')

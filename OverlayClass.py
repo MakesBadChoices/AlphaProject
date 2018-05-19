@@ -512,7 +512,7 @@ class TargetOverlay(object):
 
             # Enter Button or z (a) button
             if incoming_event.key == 13 or incoming_event.key == 122:
-                self.master.give_character_command(self.creature, self.command, target_tile=self.target_tile)
+                self.master.give_character_basic_command(self.creature, self.command, target_tile=self.target_tile)
                 self.delete()
 
             # Back Button (x)
@@ -561,10 +561,6 @@ class TextPopup(pygame.sprite.DirtySprite):
 
         if self.duration == 0:
             self.master.change_sprites([self], 'popup_sprites', add=False)
-
-
-
-
 
 
 # ==================================================================================================================== #

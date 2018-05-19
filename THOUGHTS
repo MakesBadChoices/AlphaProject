@@ -6,6 +6,12 @@ absolutely necessary?
 
 Both seem valid at 2am.
 
+New issues... Spells. I have the basic class template set up, but accessing them is tricky since they're so different
+from regular attacks. My current thought is I'll need to spawn a custom menu for spells... Like, click left and right
+to change the current level selected. This custom menu would be tailored to tell the battlefield what it needed to do
+and wouldn't hugely bastardize the existing attack/built-in command distributor. I dunno.
+
 Current time spent on project: 6 hours
 Attack Selection commit: 40 minutes
 Attack Selection2 commit: 40 minutes
+Spell Set-up: ~ 40 minutes

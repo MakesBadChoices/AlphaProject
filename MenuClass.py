@@ -140,7 +140,7 @@ class BattleMenu(pygame.sprite.DirtySprite):
     # .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .
     def engage_action(self, descriptor_text):
         self.delete()
-        self.master.give_character_command(self.master.current_creature, descriptor_text)
+        self.master.give_character_basic_command(self.master.current_creature, descriptor_text)
 
     # .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .
     def delete(self):
