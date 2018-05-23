@@ -25,6 +25,20 @@ class Matt(Player):
             'Setup Reactions': ['Ready Attack'],
         }
 
+        self.spells = {
+            0: ['Firebolt'],
+            1: ['Shield', 'Magic Missile', 'Burning Hands'],
+            2: ['Acid Arrow'],
+            3: ['Fireball']
+        }
+
+        self.spell_slots = {
+            0: None,
+            1: [4, 4],
+            2: [3, 3],
+            3: [2, 2]
+        }
+
 
 
 class TestDummy(Player):
@@ -40,8 +54,10 @@ class TestDummy(Player):
 
         # Set up a list of 'powers' this character has by building a menu tree
         self.menu_tree = {
-            'Actions': ['Weapon Attack', 'Dash', 'Cast Cantrip'],
+            'Actions': ['Weapon Attack', 'Dash'],
             'Bonus Actions': ['Derp', 'Offhand Attack'],
             'Setup Reactions': ['Ready Attack'],
-            'Cast Cantrip': ['Firebolt']
         }
+
+        self.spells = {}
+

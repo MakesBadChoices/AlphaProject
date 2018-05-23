@@ -7,6 +7,7 @@ from random import randint
 
 # Project Specific Imports
 import MenuClass
+import SpellClass
 from OverlayClass import MovementOverlay, TargetOverlay, TextPopup
 from AvatarClass import Avatar
 from TileEngine import read_tiled_map, sprite_sheet, Tile
@@ -21,6 +22,7 @@ class Battleground(object):
 
         # Set up a holding bin to keep track of all the dirty spriting we'll be doing
         self.all_sprites =  pygame.sprite.LayeredDirty()
+        # self.effect_sprites = pygame.sprite.LayeredDirty()
         # self.avatar_sprites = pygame.sprite.LayeredDirty()
         # self.menu_sprites = pygame.sprite.LayeredDirty()
         # self.movement_sprites = pygame.sprite.LayeredDirty()
@@ -59,33 +61,18 @@ class Battleground(object):
             self.all_sprites.add(enemy.avatar, layer=enemy.avatar.layer)
             # self.avatar_sprites.add(enemy.avatar)
 
-        # Add the default menu in, set up the variables and triggers for it
-        # The tuples are the name, the menu-state it puts the battleground into, and... bonus option (unused)
-        self.buttonList = [
-            ('Move', 0, None),
-            ('Actions', 1, None),
-            ('Bonus Actions', 2, None),
-            ('Setup Reactions', 3, None),
-            ('End Turn', 4, None)
-        ]
-        image = GFX['MenuSprite']
-        menu_coords = (100, 512)
-        self.base_menu = MenuClass.BattleMenu(self, menu_coords, self.buttonList, image)
-        self.sub_menus = []
-
-        # self.menu_sprites.add(self.base_menu)
-        self.all_sprites.add(self.base_menu, layer=self.base_menu.layer)
-
-        # Let the battlefield object know what is currently receiving inputs
-        self.active_object = self.base_menu
-        self.previous_active_object = self.base_menu
-
         # Set up the turn order
         self.all_creatures = []
         self.current_turn = 0
         self.current_creature = None
         self.previous_command = None
         self.compute_turn_order()
+
+
+
+        # Let the battlefield object know what is currently receiving inputs
+        self.active_object = self.base_menu
+        self.previous_active_object = self.base_menu
 
         # Finally, make a dictionary of the possible states.
         self.state_dictionary = {
@@ -99,7 +86,6 @@ class Battleground(object):
     def process_input(self, incoming_event):
 
         if self.state_dictionary['input_state']:
-            print self.active_object
             self.active_object.process_input(incoming_event)
 
     # .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .
@@ -146,6 +132,23 @@ class Battleground(object):
         self.current_turn = 0
         self.current_creature = self.turn_order[self.current_turn]
 
+        # Add the default menu in, set up the variables and triggers for it
+        # The tuples are the name, the menu-state it puts the battleground into, and... bonus option (unused)
+        self.buttonList = [
+            ('Move', 0, None),
+            ('Actions', 1, None),
+            ('Bonus Actions', 2, None)]
+        if len(self.current_creature.spells.keys()) > 0: self.buttonList.append(('Cast Spell', 3, None))
+        self.buttonList.append(('Setup Reactions', 4, None))
+        self.buttonList.append(('End Turn', 4, None))
+
+        menu_coords = (100, 512)
+        self.base_menu = MenuClass.BattleMenu(self, menu_coords, self.buttonList)
+        self.sub_menus = []
+        self.all_sprites.add(self.base_menu, layer=self.base_menu.layer)
+
+        self.active_object = self.base_menu
+
     # .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .
     def next_turn(self):
 
@@ -159,13 +162,23 @@ class Battleground(object):
         self.base_menu = None
         self.active_object = None
 
-        # Regenerate the menu if it's a friendly turn # TODO Overriden for debug mode until we get AI
-        # if self.current_creature in self.players:
-        image = GFX['MenuSprite']
+        # Add the default menu in, set up the variables and triggers for it
+        # The tuples are the name, the menu-state it puts the battleground into, and... bonus option (unused)
+        self.buttonList = [
+            ('Move', 0, None),
+            ('Actions', 1, None),
+            ('Bonus Actions', 2, None)]
+        if len(self.current_creature.spells.keys()) > 0: self.buttonList.append(('Cast Spell', 3, None))
+        self.buttonList.append(('Setup Reactions', 4, None))
+        self.buttonList.append(('End Turn', 4, None))
+
         menu_coords = (100, 512)
-        self.base_menu = MenuClass.BattleMenu(self, menu_coords, self.buttonList, image)
+        self.base_menu = MenuClass.BattleMenu(self, menu_coords, self.buttonList)
+        self.sub_menus = []
+        self.all_sprites.add(self.base_menu, layer=self.base_menu.layer)
+
         self.active_object = self.base_menu
-        self.change_sprites([self.base_menu], 'menu_sprites', add=True, layer=self.base_menu.layer)
+
 
     # .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .
     def setup_grid(self, map_file):
@@ -318,6 +331,35 @@ class Battleground(object):
 
         else:
             method()
+
+    # .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .
+    def cast_spell(self, creature, spell, target_tile=None):
+
+        # The action text is the raw command the user gives. We don't use spaces, so toss those out first...
+        command_text = spell.replace(' ', '_')
+        self.previous_command = command_text
+        spell_class = getattr(SpellClass, spell)
+        Spell = spell_class(creature)
+
+        target_dictionary = Spell.query()
+        print target_dictionary
+
+        # Query the acting characters method for target information
+        if target_tile is None:
+
+            # Summon a target menu based on the relayed target information
+            if len(target_dictionary.keys()) > 1:
+                self.change_state('target_mode', True,
+                                  {'creature': creature, 'command': command_text, 'target_info': target_dictionary})
+                return
+            else:
+                target_tile = creature.avatar.tile
+
+        # I have no idea how to handle this section yet lol
+        Spell.setup_avatar(self, creature.avatar.tile, target_tile)
+
+
+
 
     # .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .
     # Perform some black magic to determine if the attack has any modifiers put onto it...

@@ -77,9 +77,6 @@ class MovementOverlay(object):
         self.sprite_list = []
 
         # Make tiles if we have an appropriately costed block
-        print len(movement_cost_matrix)
-        print movement_cost_matrix
-
         for j, row in enumerate(movement_cost_matrix):
             for i, column in enumerate(row):
                 if movement_cost_matrix[j][i] <= self.master.current_creature.movement:
@@ -92,7 +89,6 @@ class MovementOverlay(object):
     # .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .
     def process_input(self, incoming_event):
 
-        print incoming_event
         if incoming_event.type == KEYDOWN:
 
             # Left Arrow
@@ -120,7 +116,6 @@ class MovementOverlay(object):
                     if destination_tile.difficult: move_cost *= 2
                     if remaining_movement - move_cost >= 0:
                         self.path_list.append([(self.current_coords[0]-1, self.current_coords[1]), 'LEFT', remaining_movement-move_cost])
-                        print self.path_list
                         self.current_coords = (self.current_coords[0]-1, self.current_coords[1])
                         self.draw_arrow()
 
@@ -149,7 +144,6 @@ class MovementOverlay(object):
                     if destination_tile.difficult: move_cost *= 2
                     if remaining_movement - move_cost >= 0:
                         self.path_list.append([(self.current_coords[0], self.current_coords[1]-1), 'UP', remaining_movement-move_cost])
-                        print self.path_list
                         self.current_coords = (self.current_coords[0], self.current_coords[1]-1)
                         self.draw_arrow()
 
@@ -178,7 +172,6 @@ class MovementOverlay(object):
                     if destination_tile.difficult: move_cost *= 2
                     if remaining_movement - move_cost >= 0:
                         self.path_list.append([(self.current_coords[0]+1, self.current_coords[1]), 'RIGHT', remaining_movement-move_cost])
-                        print self.path_list
                         self.current_coords = (self.current_coords[0]+1, self.current_coords[1])
                         self.draw_arrow()
 
@@ -207,7 +200,6 @@ class MovementOverlay(object):
                     if destination_tile.difficult: move_cost *= 2
                     if remaining_movement - move_cost >= 0:
                         self.path_list.append([(self.current_coords[0], self.current_coords[1]+1), 'DOWN', remaining_movement-move_cost])
-                        print self.path_list
                         self.current_coords = (self.current_coords[0], self.current_coords[1]+1)
                         self.draw_arrow()
 
@@ -279,7 +271,6 @@ class MovementOverlay(object):
             elif new_direction == 'DOWN': arrow_sprite = DOWN_ARROW
             elif new_direction == 'LEFT': arrow_sprite = LEFT_ARROW
             elif new_direction == 'RIGHT': arrow_sprite = RIGHT_ARROW
-            print new_direction
 
             # Draw the new arrow
             draw_tile = self.navigable_tile_grid[self.path_list[-1][0][1]][self.path_list[-1][0][0]]
@@ -326,7 +317,6 @@ class MovementArrow(pygame.sprite.DirtySprite):
 
         pygame.sprite.DirtySprite.__init__(self)
         # self.image = sprite
-        print scale
         self.image = pygame.transform.scale(sprite, (TILESIZE * scale, TILESIZE * scale))
         self.rect = self.image.get_rect()
         self.rect.center = center_coords
@@ -349,7 +339,6 @@ class MovementSquare(pygame.sprite.DirtySprite):
         self.layer = 0
 
         if text is not None:
-            print "HA"
             self.font = pygame.font.Font(FONTS['nintendo_nes_font'], 16)
             text_surface = self.font.render(str(text), True, (255, 255, 255))
             text_rect = text_surface.get_rect(x=10,
@@ -380,8 +369,6 @@ class TargetOverlay(object):
         # From the target information, figure out which tiles are in reach
         delta_value = target_info['range']
 
-        print delta_value
-
         # Next, grab all tiles currently in range of the user
         origin_x = creature.avatar.tile.gridx
         origin_y = creature.avatar.tile.gridy
@@ -390,17 +377,12 @@ class TargetOverlay(object):
         for j in xrange(origin_y-delta_value, origin_y+delta_value+1):
             for i in xrange(origin_x-delta_value, origin_x+delta_value+1):
                 if i == 0 and j == 0: continue
-                print '---'
-                print i
-                print j
                 tile = self.master.give_target_tile(0, 0, i, j)
                 if tile is not None:
                     viable_tiles.append(tile)
                     self.tile_sprite_list.append(MovementSquare(tile.rect.center, tile.rect, color=(255, 165, 0, 0)))
 
         # Make an orange overlay showing everything currently in range
-        print viable_tiles
-        print len(viable_tiles)
         self.master.change_sprites(self.tile_sprite_list, 'overlay_sprites', add=True)
 
         # Put an arrow over everything that is a viable target
@@ -432,7 +414,7 @@ class TargetOverlay(object):
             for creature in self.master.turn_order:
                 if creature.avatar.tile.gridx == tile.gridx and creature.avatar.tile.gridy == tile.gridy: return True
 
-        elif target_type == 'point': return True
+        elif target_type == 'tile': return True
 
         elif target_type == 'self':
             if self.creature.tile.gridx == tile.gridx and self.creature.tile.gridy == tile.gridy: return True
@@ -467,8 +449,6 @@ class TargetOverlay(object):
             if tile.gridx == self.target_tile.gridx and tile.gridy == self.target_tile.gridy: continue
 
             distance = sqrt((self.target_tile.gridx + delta_x - tile.gridx)**2 + (self.target_tile.gridy + delta_y - tile.gridy)**2)
-            print distance
-            print i
             if distance < best_distance:
                 best_distance = distance
                 best_index = i
@@ -487,11 +467,9 @@ class TargetOverlay(object):
 
         self.master.change_sprites(self.arrow_sprite_list, 'popup_sprites', add=True, layer=4)
 
-
     # .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .
     def process_input(self, incoming_event):
 
-        print incoming_event
         if incoming_event.type == KEYDOWN:
 
             # Left Arrow
@@ -512,7 +490,8 @@ class TargetOverlay(object):
 
             # Enter Button or z (a) button
             if incoming_event.key == 13 or incoming_event.key == 122:
-                self.master.give_character_basic_command(self.creature, self.command, target_tile=self.target_tile)
+                if self.target_info['type'] == 'spell': self.master.cast_spell(self.creature, self.command, target_tile=self.target_tile)
+                else: self.master.give_character_basic_command(self.creature, self.command, target_tile=self.target_tile)
                 self.delete()
 
             # Back Button (x)

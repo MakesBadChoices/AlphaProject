@@ -29,14 +29,15 @@ class Fireball(Spell):
 
     def __init__(self, caster, level=3):
 
-        Spell.__init__(self, 'Fireball', caster, 'INT', 'Instantaneous')
+        Spell.__init__(self, 'Fireball', caster, 'int', 'Instantaneous')
         self.level = level
 
     def setup_avatar(self, master, source_tile, end_tile):
         self.avatar = FireballAvatar(master, source_tile, end_tile)
+        master.change_sprites([self.avatar], 'effect_sprites', add=True)
 
     def query(self):
-        return {'target': 'tile', 'shape': 'splash5', 'range': 5, 'direction': 'line_of_sight',
+        return {'target': 'tile', 'shape': 'splash5', 'range': 10, 'direction': 'line_of_sight',
                 'attack_type': 'save', 'type': 'spell'}
 
     def resolve(self, targets):
@@ -45,7 +46,7 @@ class Fireball(Spell):
         full_damage_list = []
 
         for target in targets:
-            save_roll = target.Roll_Save('DEX', advantage=0, type=1)
+            save_roll = target.Roll_Save('dex', advantage=0, type=1)
             if save_roll >= self.DC: target.TakeDamage(damage/2, 'Fire', magical_damage=True); full_damage_list.append(0)
             else: target.TakeDamage(damage, 'Fire', magical_damage=True); full_damage_list.append(1)
 
@@ -57,9 +58,16 @@ class FireballAvatar(pygame.sprite.DirtySprite):
     def __init__(self, master, source_tile, end_tile):
         pygame.sprite.DirtySprite.__init__(self)
         self.master = master
-        self.fireball_projectile_sprites = sprite_sheet((32, 32), str(os.path.join('SpellGraphics', 'FireballProjectile.png')).strip())
-        self.fireball_explosion_sprites = sprite_sheet((160, 160), str(os.path.join('SpellGraphics', 'FireballExplosion.png')).strip())
+        self.source_tile = source_tile
+        self.end_tile = end_tile
 
+        print "Starting Coords"
+        print self.source_tile.rect.center
+        print "Ending Coords"
+        print self.end_tile.rect.center
+
+        self.fireball_projectile_sprites = sprite_sheet((32, 32), str(os.path.join('SpellGraphics', 'FireballProjectile.png')).strip(), scale=master.scale)
+        self.fireball_explosion_sprites = sprite_sheet((160, 160), str(os.path.join('SpellGraphics', 'FireballExplosion.png')).strip(), scale=master.scale)
         self.current_state = 1
         self.frame = 0
         self.max_frame = len(self.fireball_projectile_sprites) - 1
@@ -83,12 +91,16 @@ class FireballAvatar(pygame.sprite.DirtySprite):
         time_steps = distance / spell_velocity
         self.vel_x = delta_x / time_steps
         self.vel_y = delta_y / time_steps
+        print self.vel_x
+        print self.vel_y
         self.center_coords = self.rect.center
 
     def update(self):
 
         self.frame += 1
         self.dirty = 1
+
+        print self.rect.center
 
         if self.form == 'Projectile':
             if self.frame > self.max_frame: self.frame = 0
@@ -97,18 +109,23 @@ class FireballAvatar(pygame.sprite.DirtySprite):
             # Update the center
             self.rect = self.image.get_rect()
             self.rect.center = (self.center_coords[0] + self.vel_x, self.center_coords[1] + self.vel_y)
+            self.center_coords = self.rect.center
 
             # Update to the next form when we get to the target tile
-            if self.rect.center[0] >= self.end_tile.rect.center[0] or self.rect.center[1] >= self.end_tile.rect.center[1]:
+            if (self.vel_x > 0 and self.rect.center[0] >= self.end_tile.rect.center[0])\
+                    or (self.vel_y > 0 and self.rect.center[1] >= self.end_tile.rect.center[1])\
+                    or (self.vel_x < 0 and self.rect.center[0] <= self.end_tile.rect.center[0])\
+                    or (self.vel_y < 0 and self.rect.center[1] <= self.end_tile.rect.center[1]):
                 self.form = 'Fireball'
                 self.frame = -1
+                self.max_frame = len(self.fireball_explosion_sprites) - 1
 
         else:
             if self.frame > self.max_frame:
                 self.delete()
                 return
 
-            self.image = self.fireball_projectile_sprites[self.frame]
+            self.image = self.fireball_explosion_sprites[self.frame]
             self.rect = self.image.get_rect()
             self.rect.center = self.end_tile.rect.center
 
