@@ -179,7 +179,6 @@ class Battleground(object):
 
         self.active_object = self.base_menu
 
-
     # .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .
     def setup_grid(self, map_file):
 
@@ -314,21 +313,8 @@ class Battleground(object):
             to_hit, damage, damage_type, magic = method(roll=roll, roll_mod=roll_mod, damage_mod=damage_mod, advantage=advantage, animate=True)
 
             # Do something special if it's a multi-hit
-            if target_dictionary['shape'] != 'single':
-                pass
-
-            elif target_dictionary['shape'] == 'single':
-                # Figure out what to tell the user about the hit
-                if target_tile.occupant.ac <= to_hit:
-                    target_tile.occupant.TakeDamage(damage, damage_type, magical_damage=magic)
-                    text = str(damage) + ' ' + damage_type
-                else:
-                    text = 'MISS'
-                    if target_tile.occupant.ac - to_hit <= 3: text = 'EVADE'
-
-                info_sprite = TextPopup(self, text, target_tile.rect.center, color=(255, 255, 255), size=24, scale=1)
-                self.change_sprites([info_sprite], 'popup_sprites', add=True)
-
+            if target_dictionary['shape'] != 'single': pass
+            elif target_dictionary['shape'] == 'single': target_tile.occupant.TakeDamage(to_hit, damage, damage_type, magical_damage=magic)
         else:
             method()
 
@@ -357,9 +343,7 @@ class Battleground(object):
 
         # I have no idea how to handle this section yet lol
         Spell.setup_avatar(self, creature.avatar.tile, target_tile)
-
-
-
+        Spell.resolve(target_tile, self)
 
     # .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .
     # Perform some black magic to determine if the attack has any modifiers put onto it...
@@ -378,7 +362,7 @@ class Battleground(object):
         return roll, roll_mod, damage_mod, advantage
 
     # .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .
-    def change_sprites(self, sprite_list, sprite_group, add=True, layer=0):
+    def change_sprites(self, sprite_list, sprite_group, add=True, layer=0, force_delete=False):
 
         # group_list = getattr(self, sprite_group)
         group_list = self.all_sprites

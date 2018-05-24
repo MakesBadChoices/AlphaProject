@@ -31,27 +31,38 @@ class Fireball(Spell):
 
         Spell.__init__(self, 'Fireball', caster, 'int', 'Instantaneous')
         self.level = level
+        self.target_dictionary = {'target': 'tile', 'shape': 'splash5', 'range': 10, 'direction': 'line_of_sight',
+                'attack_type': 'save', 'type': 'spell'}
 
     def setup_avatar(self, master, source_tile, end_tile):
         self.avatar = FireballAvatar(master, source_tile, end_tile)
         master.change_sprites([self.avatar], 'effect_sprites', add=True)
 
     def query(self):
-        return {'target': 'tile', 'shape': 'splash5', 'range': 10, 'direction': 'line_of_sight',
-                'attack_type': 'save', 'type': 'spell'}
+        return self.target_dictionary
 
-    def resolve(self, targets):
+    def resolve(self, tile, master):
 
+        targets = []
         damage = dice_reader_plus('8d6+0')
-        full_damage_list = []
+
+        origin_x = tile.gridx
+        origin_y = tile.gridy
+        delta_value = int(self.target_dictionary['shape'].split('splash')[1])
+
+        for j in xrange(origin_y - delta_value, origin_y + delta_value + 1):
+            for i in xrange(origin_x - delta_value, origin_x + delta_value + 1):
+                # if i == 0 and j == 0: continue
+                if abs(i-origin_x) + abs(j-origin_y) > delta_value: continue
+                splash_tile = master.give_target_tile(0, 0, i, j)
+                if splash_tile is not None and splash_tile.occupant is not None:
+                    targets.append(splash_tile.occupant)
 
         for target in targets:
-            save_roll = target.Roll_Save('dex', advantage=0, type=1)
-            if save_roll >= self.DC: target.TakeDamage(damage/2, 'Fire', magical_damage=True); full_damage_list.append(0)
-            else: target.TakeDamage(damage, 'Fire', magical_damage=True); full_damage_list.append(1)
+            save_roll = target.Roll_Save('dex', advantage=0)
+            if save_roll >= self.DC: target.TakeDamage(40, damage/2, 'Fire', magical_damage=True);
+            else: target.TakeDamage(40, damage, 'Fire', magical_damage=True);
 
-        return_dict = {'damage_type': 'Fire', 'full_damage': damage, 'half_damage': damage / 2, 'report': full_damage_list}
-        return return_dict
 
 class FireballAvatar(pygame.sprite.DirtySprite):
 
@@ -60,11 +71,6 @@ class FireballAvatar(pygame.sprite.DirtySprite):
         self.master = master
         self.source_tile = source_tile
         self.end_tile = end_tile
-
-        print "Starting Coords"
-        print self.source_tile.rect.center
-        print "Ending Coords"
-        print self.end_tile.rect.center
 
         self.fireball_projectile_sprites = sprite_sheet((32, 32), str(os.path.join('SpellGraphics', 'FireballProjectile.png')).strip(), scale=master.scale)
         self.fireball_explosion_sprites = sprite_sheet((160, 160), str(os.path.join('SpellGraphics', 'FireballExplosion.png')).strip(), scale=master.scale)
@@ -91,8 +97,6 @@ class FireballAvatar(pygame.sprite.DirtySprite):
         time_steps = distance / spell_velocity
         self.vel_x = delta_x / time_steps
         self.vel_y = delta_y / time_steps
-        print self.vel_x
-        print self.vel_y
         self.center_coords = self.rect.center
 
     def update(self):

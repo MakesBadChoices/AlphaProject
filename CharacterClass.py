@@ -2,6 +2,7 @@
 import numpy.random as rand
 
 # Project Imports
+from OverlayClass import TextPopup
 from CharacterSupport import *
 from WeaponClass import *
 
@@ -68,7 +69,7 @@ class Character(object):
         self.stats = [self.str, self.dex, self.con, self.int, self.wis, self.cha]
 
         self.saves = saves
-        if self.saves is None: self.saves = []
+        if self.saves is None: self.saves = {'str': False, 'dex': False, 'con': False, 'int': False, 'wis': False}
 
         # Compute AC
         if ac[0] == 'light': self.base_ac = ac[1] + bonus_table[self.base_dex]
@@ -141,11 +142,11 @@ class Character(object):
 
     # ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~
     # Roll to see if you make a saving throw
-    def Roll_Save(self, stat, advantage=0, type=0):
+    def Roll_Save(self, stat, advantage=0):
 
         save_bonus = 0
         stat_value = getattr(self, stat)
-        if self.saves[type]: save_bonus = level_bonus_table[self.level]
+        if self.saves[stat]: save_bonus = level_bonus_table[self.level]
 
         if advantage == 1:
             save = max(rand.randint(20)+1 + bonus_table[stat_value], rand.randint(20)+1 + bonus_table[stat_value])
@@ -179,29 +180,48 @@ class Character(object):
 
     # ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~
     # Control the processes involved in taking damage
-    def TakeDamage(self, damage, damage_type, magical_damage=False, debug=False):
+    def TakeDamage(self, to_hit, damage, damage_type, magical_damage=False, debug=False):
 
         if damage_type in self.weakness: damage *= 2
         if damage_type in self.resist: damage *= .5
         if damage_type in self.immune: damage = 0
         if 'mundane' in self.resist and not magical_damage: damage *= .5
 
-        if self.hp_cur > 0:
-            self.hp_cur -= int(damage)
-            if self.hp_cur <= 0:
-                if self.type == 'Character':
-                    self.hp_cur = -1
-                    self.alive = 0
-                elif self.type == 'Monster':
-                    self.alive = -1
-                    self.hp_cur = -1
-                    if self.death_quip: pass
-        else:
-            self.DeathSavingThrow(roll=1, debug=debug)
-            return
+        # Let's see if we are even able to get hit
+        text = 'ERROR'
+        if 0 < self.ac - to_hit <= 3:
+            text = 'EVADE'
 
-        # If this was healing, reset death saves if needed.
-        if damage < 0: self.death_fails = 0
+        elif self.ac - to_hit > 3:
+            text = 'MISS'
+
+        elif to_hit < -50: text = 'CRITICAL MISS'
+
+        elif self.ac <= to_hit:
+
+            text = str(damage) + ' ' + damage_type
+            if to_hit > 50: text += '\nCRITICAL HIT'
+
+            if self.hp_cur > 0:
+                self.hp_cur -= int(damage)
+                if self.hp_cur <= 0:
+                    if self.type == 'Character':
+                        self.hp_cur = -1
+                        self.alive = 0
+                    elif self.type == 'Monster':
+                        self.alive = -1
+                        self.hp_cur = -1
+                        if self.death_quip: pass
+            else:
+                self.DeathSavingThrow(roll=1, debug=debug)
+
+            # If this was healing, reset death saves if needed.
+            if damage < 0: self.death_fails = 0
+
+        # Make text come up if there is a battle avatar
+        if self.avatar is not None:
+            info_sprite = TextPopup(self.avatar.battlefield, text, self.avatar.tile.rect.center, color=(255, 255, 255), size=24, scale=1)
+            self.avatar.battlefield.change_sprites([info_sprite], 'popup_sprites', add=True)
 
     # ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~
     # Death Saving Throws and whatnot
