@@ -11,7 +11,15 @@ from regular attacks. My current thought is I'll need to spawn a custom menu for
 to change the current level selected. This custom menu would be tailored to tell the battlefield what it needed to do
 and wouldn't hugely bastardize the existing attack/built-in command distributor. I dunno.
 
+Sprite List
+Battlefield = background
+movement_overlay = 0
+movement_arrows = 1
+
+
+
 Current time spent on project: 6 hours
 Attack Selection commit: 40 minutes
 Attack Selection2 commit: 40 minutes
 Spell Set-up: ~ 40 minutes
+

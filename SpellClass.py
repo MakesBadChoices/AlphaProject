@@ -11,15 +11,45 @@ from TileEngine import sprite_sheet
 # ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~   ~
 class Spell(object):
 
-    def __init__(self, name, caster, primary_stat, duration):
+    def __init__(self, name, caster, primary_stat, duration, requires_concentration=False):
 
         self.name = name
         self.caster = caster
         self.primary_stat = primary_stat
         self.duration = duration
+        self.requires_concentration = requires_concentration
+        self.targets = []
+        self.status_key = None
 
         self.DC = 8 + bonus_table[getattr(self.caster, self.primary_stat)]
         self.attack_bonus = bonus_table[getattr(self.caster, self.primary_stat)] + level_bonus_table[caster.level]
+
+    def delete(self):
+        for creature in self.targets:
+            destroy_index = creature.spells.index(self)
+            creature.spells.pop(destroy_index)
+
+def get_targets(spell, tile, master):
+    targets = []
+    origin_x = tile.gridx
+    origin_y = tile.gridy
+
+    shape_types = ['splash']
+    shape = spell.target_dictionary['shape']
+    for shape_type in shape_types:
+        if shape_type in shape:
+            delta_value = int(shape.split(shape_type)[1])
+            shape = shape_type
+
+    for j in xrange(origin_y - delta_value, origin_y + delta_value + 1):
+        for i in xrange(origin_x - delta_value, origin_x + delta_value + 1):
+            # if i == 0 and j == 0: continue
+            if shape == 'splash' and (abs(i - origin_x) + abs(j - origin_y) > delta_value): continue
+            splash_tile = master.give_target_tile(0, 0, i, j)
+            if splash_tile is not None and splash_tile.occupant is not None:
+                targets.append(splash_tile.occupant)
+
+    return targets
 
 # ==================================================================================================================== #
 # SPELL LIST
@@ -43,25 +73,16 @@ class Fireball(Spell):
 
     def resolve(self, tile, master):
 
-        targets = []
+
         damage = dice_reader_plus('8d6+0')
-
-        origin_x = tile.gridx
-        origin_y = tile.gridy
-        delta_value = int(self.target_dictionary['shape'].split('splash')[1])
-
-        for j in xrange(origin_y - delta_value, origin_y + delta_value + 1):
-            for i in xrange(origin_x - delta_value, origin_x + delta_value + 1):
-                # if i == 0 and j == 0: continue
-                if abs(i-origin_x) + abs(j-origin_y) > delta_value: continue
-                splash_tile = master.give_target_tile(0, 0, i, j)
-                if splash_tile is not None and splash_tile.occupant is not None:
-                    targets.append(splash_tile.occupant)
+        targets = get_targets(self, tile, master)
 
         for target in targets:
             save_roll = target.Roll_Save('dex', advantage=0)
-            if save_roll >= self.DC: target.TakeDamage(40, damage/2, 'Fire', magical_damage=True);
-            else: target.TakeDamage(40, damage, 'Fire', magical_damage=True);
+            if save_roll >= self.DC: target.TakeDamage(40, damage/2, 'Fire', magical_damage=True)
+            else: target.TakeDamage(40, damage, 'Fire', magical_damage=True)
+
+        self.setup_avatar(master, self.caster.avatar.tile, tile)
 
 
 class FireballAvatar(pygame.sprite.DirtySprite):
@@ -137,11 +158,74 @@ class FireballAvatar(pygame.sprite.DirtySprite):
         self.master.change_sprites([self], 'avatar_sprites', add=False)
 
 
+class Bless(Spell):
+
+    def __init__(self, caster, level=1):
+
+        Spell.__init__(self, 'Bless', caster, 'wis', 10, requires_concentration=True)
+        self.level = level
+        self.target_dictionary = {'target': 'creature', 'shape': 'splash2', 'range': 3, 'direction': 'smite',
+                'attack_type': 'buff', 'type': 'spell'}
+        self.status_key = 'bless'
+
+    def setup_avatar(self, master, target_tile):
+        avatar = BlessAvatar(master, target_tile)
+        master.change_sprites([avatar], 'effect_sprites', add=True, layer=avatar.layer)
+
+    def query(self):
+        return self.target_dictionary
+
+    def resolve(self, tile, master):
+
+        self.caster.concentrating = self
+        self.caster.status_dict['concentrate'] = 99
+        self.caster.avatar.status_manager.update_active_icons()
+        targets = get_targets(self, tile, master)
+
+        for target in targets:
+            if type(target) == type(self.caster):
+                target.spells.append(self)
+                target.status_dict['bless'] = 1
+                target.avatar.status_manager.update_active_icons()
+                self.setup_avatar(master, target.avatar.tile)
+
+class BlessAvatar(pygame.sprite.DirtySprite):
+
+    def __init__(self, master, target_tile):
+
+        pygame.sprite.DirtySprite.__init__(self)
+        self.master = master
+        self.target_tile = target_tile
+
+        self.bless_sprites = sprite_sheet((64, 64), str(os.path.join('SpellGraphics', 'BlessCast.png')).strip(), scale=master.scale)
+
+        self.frame = 0
+        self.max_frame = len(self.bless_sprites) - 1
+
+        self.dirty = 1
+        self.layer = 4
+
+        self.image = self.bless_sprites[0]
+        self.rect = self.image.get_rect()
+        self.rect.center = self.target_tile.rect.center
+
+    def update(self):
+
+        self.frame += 1
+        self.dirty = 1
+
+        if self.frame > self.max_frame:
+            self.delete()
+            return
+
+        self.image = self.bless_sprites[self.frame]
+
+        # Update the center
+        self.rect = self.image.get_rect()
+        self.rect.center = self.target_tile.rect.center
 
 
 
-
-
-
-
+    def delete(self):
+        self.master.change_sprites([self], 'avatar_sprites', add=False)
 

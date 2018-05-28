@@ -25,9 +25,9 @@ class Matt(Player):
             'Setup Reactions': ['Ready Attack'],
         }
 
-        self.spells = {
+        self.spell_list = {
             0: ['Firebolt'],
-            1: ['Shield', 'Magic Missile', 'Burning Hands'],
+            1: ['Bless'],
             2: ['Acid Arrow'],
             3: ['Fireball']
         }
@@ -59,5 +59,5 @@ class TestDummy(Player):
             'Setup Reactions': ['Ready Attack'],
         }
 
-        self.spells = {}
+        self.spell_list = {}
 

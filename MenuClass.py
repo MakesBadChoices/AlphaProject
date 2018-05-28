@@ -194,7 +194,7 @@ class SpellMenu(pygame.sprite.DirtySprite):
     # .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .
     def get_spell_list(self, level):
         caster = self.master.current_creature
-        caster_spell_list = caster.spells[level]
+        caster_spell_list = caster.spell_list[level]
 
         if level == 0: level_text = 'Cantrips'
         else: level_text = 'Level %i (%i/%i)' % (level, caster.spell_slots[level][0], caster.spell_slots[level][1])
@@ -245,7 +245,7 @@ class SpellMenu(pygame.sprite.DirtySprite):
             # Left Arrow
             if incoming_event.key == 276:
                 self.spell_level -= 1
-                if self.spell_level == -1: self.spell_level = self.master.current_creature.spells.keys()[-1]
+                if self.spell_level == -1: self.spell_level = self.master.current_creature.spell_list.keys()[-1]
                 spell_list, spell_text = self.get_spell_list(self.spell_level)
 
                 # Set up the spacing for individual options. The list is so the order is preserved (dictionaries be weird yo)
@@ -270,7 +270,7 @@ class SpellMenu(pygame.sprite.DirtySprite):
             # Right Arrow
             if incoming_event.key == 275:
                 self.spell_level += 1
-                if self.spell_level > self.master.current_creature.spells.keys()[-1]: self.spell_level = 0
+                if self.spell_level > self.master.current_creature.spell_list.keys()[-1]: self.spell_level = 0
                 spell_list, spell_text = self.get_spell_list(self.spell_level)
 
                 # Set up the spacing for individual options. The list is so the order is preserved (dictionaries be weird yo)

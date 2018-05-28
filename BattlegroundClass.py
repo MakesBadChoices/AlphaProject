@@ -68,8 +68,6 @@ class Battleground(object):
         self.previous_command = None
         self.compute_turn_order()
 
-
-
         # Let the battlefield object know what is currently receiving inputs
         self.active_object = self.base_menu
         self.previous_active_object = self.base_menu
@@ -95,6 +93,9 @@ class Battleground(object):
     # .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .
     def change_state(self, state, new_value, kwargs=None):
 
+        # Anytime something changes focus, update character status icons
+        for character in self.turn_order:
+            character.avatar.status_manager.update_active_icons()
 
         # If switching modes, turn off all other modes
         if 'mode' in state:
@@ -138,7 +139,7 @@ class Battleground(object):
             ('Move', 0, None),
             ('Actions', 1, None),
             ('Bonus Actions', 2, None)]
-        if len(self.current_creature.spells.keys()) > 0: self.buttonList.append(('Cast Spell', 3, None))
+        if len(self.current_creature.spell_list.keys()) > 0: self.buttonList.append(('Cast Spell', 3, None))
         self.buttonList.append(('Setup Reactions', 4, None))
         self.buttonList.append(('End Turn', 4, None))
 
@@ -168,7 +169,7 @@ class Battleground(object):
             ('Move', 0, None),
             ('Actions', 1, None),
             ('Bonus Actions', 2, None)]
-        if len(self.current_creature.spells.keys()) > 0: self.buttonList.append(('Cast Spell', 3, None))
+        if len(self.current_creature.spell_list.keys()) > 0: self.buttonList.append(('Cast Spell', 3, None))
         self.buttonList.append(('Setup Reactions', 4, None))
         self.buttonList.append(('End Turn', 4, None))
 
@@ -342,7 +343,6 @@ class Battleground(object):
                 target_tile = creature.avatar.tile
 
         # I have no idea how to handle this section yet lol
-        Spell.setup_avatar(self, creature.avatar.tile, target_tile)
         Spell.resolve(target_tile, self)
 
     # .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .
@@ -394,13 +394,14 @@ if __name__ == "__main__":
     # Spawn some generic test things
     from PlayerClasses import Matt, TestDummy
     matt = Matt()
+    matt2 = Matt()
     test_dummy = TestDummy()
     test_dummy2 = TestDummy()
     test_dummy3 = TestDummy()
 
     background_file = 'testmap_export.csv'
     background_file = 'Big_Test.csv'
-    bg = Battleground(screen_size, players=[matt], enemies=[test_dummy, test_dummy2, test_dummy3], background_file=background_file, refresh_rate=100)
+    bg = Battleground(screen_size, players=[matt, matt2], enemies=[test_dummy, test_dummy2, test_dummy3], background_file=background_file, refresh_rate=100)
     map_tile_refresh_rate = bg.refresh_rate
 
 

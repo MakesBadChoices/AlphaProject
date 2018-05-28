@@ -389,9 +389,9 @@ class TargetOverlay(object):
                 if tile is not None:
                     viable_tiles.append(tile)
                     self.tile_sprite_list.append(MovementSquare(tile.rect.center, tile.rect, color=(255, 165, 0, 0)))
-                    if abs(i-origin_x) + abs(j-origin_y) <= self.splash and self.splash > 0:
-                        splash_tiles.append(tile)
-                        self.splash_sprite_list.append(MovementSquare(tile.rect.center, tile.rect, color=(255, 0, 0, 0)))
+                    # if abs(i-origin_x) + abs(j-origin_y) <= self.splash and self.splash > 0:
+                    #     splash_tiles.append(tile)
+                    #     self.splash_sprite_list.append(MovementSquare(tile.rect.center, tile.rect, color=(255, 0, 0, 0)))
 
         # Make an orange overlay showing everything currently in range
         self.master.change_sprites(self.tile_sprite_list, 'overlay_sprites', add=True)
@@ -410,6 +410,19 @@ class TargetOverlay(object):
         if self.target_info['target'] == 'tile': offset = False
         self.target_tile = self.target_tiles[0]
         self.arrow_sprite_list.append(TargetArrow(ORANGE_ARROW, self.target_tiles[0].rect.center, scale=2, offset=offset))
+
+        origin_x = self.target_tile.gridx
+        origin_y = self.target_tile.gridy
+        splash_tiles = []
+
+        for j in xrange(origin_y - delta_value, origin_y + delta_value + 1):
+            for i in xrange(origin_x - delta_value, origin_x + delta_value + 1):
+                # if i == 0 and j == 0: continue
+                tile = self.master.give_target_tile(0, 0, i, j)
+                if tile is not None:
+                    if abs(i-origin_x) + abs(j-origin_y) <= self.splash and self.splash > 0:
+                        splash_tiles.append(tile)
+                        self.splash_sprite_list.append(MovementSquare(tile.rect.center, tile.rect, color=(255, 0, 0, 0)))
 
         # Put arrows on viable targets or red on the splash zone
         if len(self.target_tiles) > 1 and target_info['target'] != 'tile':

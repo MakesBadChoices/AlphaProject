@@ -5,6 +5,7 @@ import numpy.random as rand
 from OverlayClass import TextPopup
 from CharacterSupport import *
 from WeaponClass import *
+import StatusClass
 
 class Character(object):
 
@@ -51,14 +52,6 @@ class Character(object):
         self.weakness_bonus = []
         self.resist_bonus = []
 
-        # These are all one-turn effects
-        self.dodge = 0
-        self.exposed = 0
-        self.stealth = 0
-        self.marked = 0
-        self.constrict = 0
-        self.buffs = [self.dodge, self.exposed, self.stealth, self.marked, self.constrict]
-
         self.str = self.base_str + self.str_bonus
         self.dex = self.base_dex + self.dex_bonus
         self.con = self.base_con + self.con_bonus
@@ -76,6 +69,13 @@ class Character(object):
         if ac[0] == 'medium': self.base_ac = ac[1] + min(bonus_table[self.base_dex], 2)
         if ac[0] == 'heavy': self.base_ac = ac[1]
         self.ac = self.base_ac
+
+        # Set up the buff/debuff stuff...
+        self.status_dict = StatusClass.setup_status()
+
+        # Set up a holder for any spells impacting the creature
+        self.spells = []
+        self.concentrating = None
 
         # Finally, game related parameters and objects.
         self.alive = 1
@@ -300,10 +300,22 @@ class Character(object):
     # Checks for the start of the turn
     def StartTurn(self, debug=False):
 
-        # Iterate through stat buff/debuffs and update them
-        for item in self.temp_checks:
-            if item > 0: item -= 1
-            if item < 0: item += 1
+        # Update any spells the player is concentrating on
+        if self.concentrating is not None:
+            self.concentrating.duration -= 1
+            if self.concentrating.duration == 0: self.concentrating.delete()
+
+        # Update the status affecting the character
+        for status_key in self.status_dict:
+            if self.status_dict[status_key] > 0: self.status_dict[status_key] -= 1
+
+        # Go over any spells affecting the character
+        for spell in self.spells:
+            if spell.status_key: self.status_dict[spell.status_key] = 1
+
+        # If there is an avatar, update the status icons
+        if self.avatar:
+            self.avatar.status_manager.update_active_icons()
 
         self.str = self.base_str + self.str_bonus
         self.dex = self.base_dex + self.dex_bonus
@@ -319,25 +331,6 @@ class Character(object):
         if self.ac_params[0] == 'medium': self.ac = self.ac_params[1] + max(bonus_table[self.dex], 2)
         if self.ac_params[0] == 'heavy': self.ac = self.ac_params[1]
         self.weapon_stat = bonus_table[self.str]
-
-        for item in self.weakness_bonus:
-            if item[0] > 0:
-                item[0] -= 1
-                if item[0] == 0:
-                    self.weakness_bonus.pop(item)
-
-        for item in self.resist_bonus:
-            if item[0] > 0:
-                item[0] -= 1
-                if item[0] == 0:
-                    self.resist_bonus.pop(item)
-
-        # Buffs and debuffs increment
-        for status in self.buffs:
-            if status != 0: status -= 1
-
-        if self.constrict:
-            self.hp_cur -= 2
 
         # Death Check
         if self.hp_cur <= 0 and self.alive == 0:

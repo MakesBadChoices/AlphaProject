@@ -6,6 +6,7 @@ import glob
 import os
 
 # Project Imports
+import StatusClass
 from CharacterClass import Character
 from CharacterSupport import *
 from WeaponClass import Weapon
@@ -23,10 +24,12 @@ class Avatar(pygame.sprite.DirtySprite):
         pygame.sprite.DirtySprite.__init__(self)
 
         self.character = character
+        self.status_manager = StatusClass.StatusOverlay(self.character)
         self.name = name
         self.state = 'IDLE'
         self.override_state = 'Null'
         self.scale = scale
+        self.size = sprite_size
         self.facing = facing
         self.layer = 1
 
@@ -92,6 +95,7 @@ class Avatar(pygame.sprite.DirtySprite):
 
         colorkey = self.image.get_at((0, 0))
         self.image.set_colorkey(colorkey, RLEACCEL)
+        self.status_manager.update_coordinates()
 
     # .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .     .
     def check_state(self):
